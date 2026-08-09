@@ -42,7 +42,7 @@
 - Imagery/iconography: 실제 본당 사진과 현재 승인된 사역 이미지만 사용
 
 ## Components
-- Existing components to reuse: `Base.astro`, 히어로, 설교 특집 카드, 설교 목록, 예배 테이블, 사역 카드
+- Existing components to reuse: `Base.astro`, 히어로, 설교 특집 카드, 설교 목록, 예배 테이블, 사역 카드, Google Maps 임베드
 - New/changed components: 없음. 기존 CSS 선택자를 확장한다.
 - Variants and states: hover, focus-visible, reduced-motion, mobile single-column
 - Token/component ownership: 전역 토큰과 컴포넌트 스타일은 `site/src/styles/global.css`
@@ -75,7 +75,7 @@
 ## Implementation constraints
 - Framework/styling system: Astro, 전역 CSS, Content Collections
 - Design-token constraints: 기존 `:root` 토큰을 재사용하고 새 디자인 레이어를 만들지 않는다.
-- Performance constraints: 외부 폰트·불필요한 JS·새 의존성을 추가하지 않는다.
+- Performance constraints: 외부 폰트·불필요한 JS·새 의존성을 추가하지 않고, Google Maps iframe은 지연 로딩한다.
 - Compatibility constraints: GitHub Pages 커스텀 도메인, `base` 경로 없음
 - Test/screenshot expectations: `cd site && npx astro build`, 주요 화면 크기에서 스크린샷 검사
 

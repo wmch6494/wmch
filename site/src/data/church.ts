@@ -10,6 +10,7 @@ export const church = {
   address: '경기도 안양시 동안구 관양로 93 (관양동)',
   tel: '031-384-6494',
   fax: '031-388-0173',
+  googleMapsEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m5!3m3!1m2!1s0x357b5e2131c19d01%3A0xfc60016d695f9e3f!2z7IS46rOE7ISg6rWQ6rWQ7ZqM!5e0!3m2!1sko!2skr!4v1786264155430!5m2!1sko!2skr',
   youtube: 'https://www.youtube.com/c/%EC%95%88%EC%96%91%EC%84%B8%EA%B3%84%EC%84%A0%EA%B5%90%EA%B5%90%ED%9A%8C',
   services: [
     { name: '주일예배 1부', place: '본당', time: '오전 8:30' },
