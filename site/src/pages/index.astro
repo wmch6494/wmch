@@ -29,7 +29,7 @@ const mapUrl = `https://map.kakao.com/link/search/${encodeURIComponent(church.ad
     <div class="hero-main">
       <span class="ov">{church.nameEn}</span>
       <h1><span class="w">복음으로</span><br /><span class="w">생명을</span> <span class="w">살리는</span> <span class="w">교회</span></h1>
-      <p class="sub">{church.name}는 {church.founded} 창립 이래, 한 자리에서 지역과 민족과 세계를 섬겨 왔습니다.</p>
+      <p class="sub">{church.name}는 {church.founded} 창립 이래 한 자리에서 지역과 민족과 세계를 섬겨 왔습니다.</p>
       <div class="cta-row">
         <a class="btn white" href="#sermon">이번 주 말씀 보기</a>
         <a class="btn outline" href="#worship">예배 안내</a>
@@ -50,7 +50,6 @@ const mapUrl = `https://map.kakao.com/link/search/${encodeURIComponent(church.ad
       <div class="sec-head reveal">
         <span class="ov">The Word</span>
         <h2>이번 주 말씀</h2>
-        <p>주일 설교가 유튜브에 올라오면 이 자리에 자동으로 게시됩니다.</p>
       </div>
       <div class="sermon-grid">
         <a class="feat reveal" href={featured.data.youtube ?? church.youtube} target="_blank" rel="noopener">
