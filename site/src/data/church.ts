@@ -3,9 +3,10 @@
 export const church = {
   name: '안양세계선교교회',
   nameEn: 'World Mission Presbyterian Church',
-  denomination: '대한예수교장로회(개혁)',
+  denomination: '대한예수교장로회(총회)',
   pastor: '담임목사 이창섭',
   founded: '1979년 10월 7일',
+  postalCode: '13928',
   address: '경기도 안양시 동안구 관양로 93 (관양동)',
   tel: '031-384-6494',
   fax: '031-388-0173',

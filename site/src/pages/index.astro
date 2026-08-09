@@ -188,9 +188,14 @@ const mapUrl = `https://map.kakao.com/link/search/${encodeURIComponent(church.ad
       </div>
     </div>
     <footer class="foot">
-      <span><strong>{church.name}</strong> · {church.pastor} · {church.denomination}</span>
-      <span><a href="#sermon">말씀</a> · <a href="#worship">예배 안내</a> · <a href="#visit">오시는 길</a></span>
-      <span>ⓒ {church.nameEn}</span>
+      <div class="foot-top">
+        <span><strong>{church.name}</strong> · {church.pastor} · {church.denomination}</span>
+        <span><a href="#sermon">말씀</a> · <a href="#worship">예배 안내</a> · <a href="#visit">오시는 길</a></span>
+      </div>
+      <div class="foot-meta">
+        <address>({church.postalCode}) {church.address}<span class="foot-sep">TEL : {church.tel}</span><span class="foot-sep">FAX : {church.fax}</span></address>
+        <p>COPYRIGHT(C) 세계선교교회 ALL RIGHTS RESERVED.</p>
+      </div>
     </footer>
   </div>
 

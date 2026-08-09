@@ -324,11 +324,19 @@ h2 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; letter-spacing: -0.04e
 .foot {
   max-width: 1200px; margin: 0 auto; width: 100%; padding: 30px 28px 44px;
   border-top: 1px solid rgba(255,255,255,0.12);
-  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   color: rgba(244,244,240,0.5); font-size: 13px;
 }
+.foot-top { display: flex; justify-content: space-between; gap: 16px 32px; flex-wrap: wrap; }
+.foot-meta { margin-top: 22px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+.foot-meta address { font-style: normal; }
+.foot-meta p { margin: 4px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; }
+.foot-sep::before { content: "\00B7"; margin: 0 10px; }
 .foot strong { color: var(--deep-text); font-weight: 800; }
 .foot a:hover { color: #fff; }
+@media (max-width: 640px) {
+  .foot-meta address { display: flex; flex-direction: column; gap: 2px; }
+  .foot-sep::before { content: none; }
+}
 
 /* ── 서브페이지(아카이브 등) ── */
 .page { padding: 150px 0 100px; min-height: 70svh; }
