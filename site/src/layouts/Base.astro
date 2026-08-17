@@ -6,7 +6,7 @@ import { church } from '../data/church';
 interface Props { title?: string; description?: string; navOnLight?: boolean }
 const {
   title = church.name,
-  description = '복음으로 생명을 살리는 교회, 안양세계선교교회',
+  description = `복음으로 생명을 살리는 교회, ${church.name}`,
   navOnLight = false,
 } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');

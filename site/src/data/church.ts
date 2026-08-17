@@ -1,7 +1,7 @@
 // 교회 기본 정보
 // 출처: 세계선교교회 2026년 7월 12일 주보
 export const church = {
-  name: '안양세계선교교회',
+  name: '세계선교교회',
   nameEn: 'World Mission Presbyterian Church',
   denomination: '대한예수교장로회(총회)',
   pastor: '담임목사 이창섭',
