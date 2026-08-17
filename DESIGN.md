@@ -57,7 +57,8 @@
 ## Responsive behavior
 - Supported breakpoints/devices: 640px, 720px, 880px 기준의 모바일·태블릿·데스크톱
 - Layout adaptations: 880px 이하에서 풀페이지 스냅을 풀고 그리드를 1열로 전환
-- Mobile navigation: 720px 이하에서는 상단 바가 업화이트 배경의 자체 높이를 차지하고 문서와 함께 스크롤해 히어로·본문을 가리지 않는다.
+- Mobile navigation: 720px 이하 랜딩에서는 상단 바를 사진 위에 두되 히어로가 112px의 안전 여백을 확보해 문구를 가리지 않으며, 밝은 서브페이지에서는 업화이트 배경의 자체 높이를 차지한다.
+- Mobile sermon card: iOS Safari에서도 대표 말씀 카드가 가용 폭 전체를 차지하도록 단일 `minmax(0, 1fr)` 열과 명시적 100% 폭을 사용한다.
 - Touch/hover differences: hover는 보조 효과로만 사용하고 핵심 정보를 숨기지 않는다.
 
 ## Interaction states

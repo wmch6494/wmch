@@ -85,16 +85,13 @@ body.nav-on-light .brand img { filter: none; }
 .nav-links a:hover { opacity: 1; }
 .nav-links a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 @media (max-width: 720px) {
-  nav.top { position: relative; background: var(--paper); }
+  nav.top { position: absolute; background: transparent; }
+  body.nav-on-light nav.top { position: relative; background: var(--paper); }
   nav.top::before { display: none; }
-  .nav-inner,
-  body.on-dark .nav-inner { padding: 18px 20px; color: var(--ink); }
+  .nav-inner { padding: 18px 20px; }
   .brand { gap: 8px; font-size: 14px; }
-  .brand img,
-  body.on-dark .brand img { width: 40px; height: 25px; filter: none; }
+  .brand img { width: 40px; height: 25px; }
   .nav-links a:not(.nav-cta) { display: none; }
-  body.on-dark .nav-cta { background: var(--ink); color: #fff !important; }
-  .hero { min-height: calc(100svh - 75px); }
 }
 .nav-cta {
   padding: 11px 22px; border-radius: 999px; background: #fff; color: var(--ink) !important;
@@ -130,6 +127,11 @@ body.nav-on-light .nav-cta { background: var(--ink); color: #fff !important; }
   background: linear-gradient(180deg, rgba(13,15,14,0.42), transparent 32%, transparent 55%, rgba(13,15,14,0.78));
 }
 .hero-main { padding: 0 28px; max-width: 1200px; margin: 0 auto; width: 100%; }
+@media (max-width: 720px) {
+  .hero { min-height: 100svh; justify-content: flex-start; }
+  .hero-main { padding: 112px 20px 0; }
+  .hero-bar { margin-top: auto; }
+}
 .hero .ov { color: rgba(255,255,255,0.66); display: block; margin-bottom: 22px; }
 .hero h1 {
   margin: 0 0 28px; font-weight: 900; letter-spacing: -0.045em; line-height: 1.1;
@@ -182,10 +184,13 @@ h2 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; letter-spacing: -0.04e
 
 /* ── 말씀 ── */
 .sermon-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 48px; align-items: stretch; }
-@media (max-width: 880px) { .sermon-grid { grid-template-columns: 1fr; } }
+@media (max-width: 880px) {
+  .sermon-grid { grid-template-columns: minmax(0, 1fr); }
+  .feat, .sermon-side { width: 100%; min-width: 0; }
+}
 .feat {
   position: relative; border-radius: 24px; overflow: hidden; isolation: isolate;
-  aspect-ratio: 16 / 9; display: flex; flex-direction: column; justify-content: flex-end;
+  width: 100%; aspect-ratio: 16 / 9; display: flex; flex-direction: column; justify-content: flex-end;
   padding: 36px; color: #fff;
 }
 .feat .bg {
