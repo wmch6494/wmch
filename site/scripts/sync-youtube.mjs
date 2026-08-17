@@ -5,6 +5,7 @@ import {
   compareRuleAndGemini,
   parseVideo,
   parseYouTubeFeed,
+  resolveRuleOnlyStatus,
 } from './youtube-parser.mjs';
 
 const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID || 'UCpi1Q5uHa1-gW1C5IQsqR1w';
@@ -34,7 +35,7 @@ const results = [];
 for (const video of videos) {
   const rule = parseVideo(video);
   let gemini = null;
-  let finalStatus = rule.ruleStatus === 'ignored' ? 'ignored' : 'review';
+  let finalStatus = resolveRuleOnlyStatus(rule);
   let conflicts = [];
 
   if (useGemini) {

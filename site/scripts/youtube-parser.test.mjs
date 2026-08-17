@@ -5,6 +5,7 @@ import {
   parseScripture,
   parseVideo,
   parseYouTubeFeed,
+  resolveRuleOnlyStatus,
 } from './youtube-parser.mjs';
 
 test('실제 설교 설명에서 제목, 본문, 설교자를 추출한다', () => {
@@ -23,6 +24,20 @@ test('실제 설교 설명에서 제목, 본문, 설교자를 추출한다', () 
   assert.equal(result.scriptureShort, '엡 6');
   assert.equal(result.preacher, '이창섭 목사');
   assert.deepEqual(result.warnings, []);
+  assert.equal(resolveRuleOnlyStatus(result), 'approved');
+});
+
+test('정보가 빠진 설교는 자동 게시하지 않고 검수 대상으로 남긴다', () => {
+  const result = parseVideo({
+    videoId: 'needs-review',
+    title: '[2026.08.16] 세계선교교회 주일 2부 말씀',
+    description: '',
+    publishedAt: '2026-08-16T03:00:00+00:00',
+    url: 'https://www.youtube.com/watch?v=needs-review',
+  });
+
+  assert.equal(result.ruleStatus, 'review');
+  assert.equal(resolveRuleOnlyStatus(result), 'review');
 });
 
 test('예배 전체와 새벽기도회, 찬양대, 뉴스를 구분한다', () => {
@@ -35,6 +50,7 @@ test('예배 전체와 새벽기도회, 찬양대, 뉴스를 구분한다', () =
 
 test('성경 약칭도 정규화하고 잘못된 장을 경고한다', () => {
   assert.equal(parseScripture('엡 6:1-13').normalized, '에베소서 6:1–13');
+  assert.equal(parseScripture('빌립소서2:1~30').normalized, '빌립보서 2:1–30');
   assert.deepEqual(parseScripture('에베소서 7:1').warnings, ['invalid_chapter']);
 });
 

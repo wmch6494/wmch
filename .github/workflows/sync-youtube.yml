@@ -1,0 +1,56 @@
+name: Sync sermons from YouTube
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youtube-sermon-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Verify parser
+        working-directory: site
+        run: npm run youtube:test
+
+      - name: Add complete sermon entries
+        working-directory: site
+        run: npm run youtube:sync
+
+      - name: Commit new sermons
+        run: |
+          git add site/src/content/sermons
+          if git diff --cached --quiet; then
+            echo "No new sermon metadata found."
+            exit 0
+          fi
+          git -c user.name=ark1st -c user.email=48564934+ark1st@users.noreply.github.com commit \
+            -m "Keep the sermon archive aligned with the official channel" \
+            -m "Constraint: Publish only official metadata that parses without warnings" \
+            -m "Confidence: high" \
+            -m "Scope-risk: narrow" \
+            -m "Directive: Leave incomplete or ambiguous videos for manual review" \
+            -m "Tested: npm run youtube:test" \
+            -m "Not-tested: Live rendering is handled by the deploy workflow"
+          git push

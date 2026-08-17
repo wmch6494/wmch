@@ -2,7 +2,7 @@
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-08-09
+- Last refreshed: 2026-08-17
 - Primary product surfaces: 풀페이지 랜딩(`/`), 말씀 아카이브(`/sermons/`)
 - Evidence reviewed: `HANDOFF.md` §4, `design-concepts/concept-d-landing.html`, `site/src/pages/`, `site/src/styles/global.css`
 
@@ -57,6 +57,7 @@
 ## Responsive behavior
 - Supported breakpoints/devices: 640px, 720px, 880px 기준의 모바일·태블릿·데스크톱
 - Layout adaptations: 880px 이하에서 풀페이지 스냅을 풀고 그리드를 1열로 전환
+- Mobile navigation: 720px 이하에서는 상단 바를 고정하지 않고 문서와 함께 스크롤해 본문을 가리지 않는다.
 - Touch/hover differences: hover는 보조 효과로만 사용하고 핵심 정보를 숨기지 않는다.
 
 ## Interaction states

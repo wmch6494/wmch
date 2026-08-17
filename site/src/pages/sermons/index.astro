@@ -9,7 +9,7 @@ const sermons = (await getCollection('sermons')).sort(
 const fmt = (d: Date) =>
   d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 ---
-<Base title={`말씀 아카이브 · ${church.name}`}>
+<Base title={`말씀 아카이브 · ${church.name}`} navOnLight>
   <main class="page" style="background: var(--paper)">
     <div class="wrap">
       <h1>생명의 말씀</h1>

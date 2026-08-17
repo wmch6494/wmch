@@ -13,7 +13,8 @@
     "youtube:test": "node --test scripts/youtube-parser.test.mjs",
     "youtube:check": "node scripts/sync-youtube.mjs",
     "youtube:check:gemini": "node scripts/sync-youtube.mjs --gemini",
-    "youtube:sync": "node scripts/sync-youtube.mjs --gemini --write"
+    "youtube:sync": "node scripts/sync-youtube.mjs --write",
+    "youtube:sync:gemini": "node scripts/sync-youtube.mjs --gemini --write"
   },
   "dependencies": {
     "astro": "^7.0.7"

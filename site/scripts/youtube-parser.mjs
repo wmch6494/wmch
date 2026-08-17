@@ -30,6 +30,9 @@ for (const [name, short, maxChapter] of BOOKS) {
   BOOK_BY_ALIAS.set(short, { name, short, maxChapter });
 }
 
+// 공식 채널 설명에 반복해서 쓰인 표기를 정식 성경명으로 정규화한다.
+BOOK_BY_ALIAS.set('빌립소서', BOOK_BY_ALIAS.get('빌립보서'));
+
 const BOOK_PATTERN = [...BOOK_BY_ALIAS.keys()]
   .sort((a, b) => b.length - a.length)
   .map(escapeRegExp)
@@ -152,6 +155,12 @@ export function parseVideo(video) {
         ? 'review'
         : 'ignored',
   };
+}
+
+export function resolveRuleOnlyStatus(rule) {
+  if (rule.ruleStatus === 'ignored') return 'ignored';
+  if (rule.ruleStatus === 'parsed') return 'approved';
+  return 'review';
 }
 
 export function compareRuleAndGemini(rule, gemini) {
