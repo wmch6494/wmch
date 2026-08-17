@@ -14,6 +14,7 @@ const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const siteDir = dirname(scriptDir);
 const sermonDir = join(siteDir, 'src', 'content', 'sermons');
+const latestThumbnailPath = join(siteDir, 'src', 'assets', 'img', 'latest-sermon.webp');
 
 const args = new Set(process.argv.slice(2));
 const useGemini = args.has('--gemini');
@@ -48,6 +49,16 @@ for (const video of videos) {
 
   if (shouldWrite && finalStatus === 'approved') {
     result.outputPath = await writeSermon(result);
+  }
+}
+
+if (shouldWrite) {
+  const latestSermon = results
+    .filter((result) => result.finalStatus === 'approved')
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+
+  if (latestSermon) {
+    latestSermon.thumbnailPath = await writeLatestThumbnail(latestSermon.videoId);
   }
 }
 
@@ -152,6 +163,30 @@ async function writeSermon(result) {
   ].join('\n');
   await writeFile(path, frontmatter, { encoding: 'utf8', flag: 'wx' });
   return path;
+}
+
+async function writeLatestThumbnail(videoId) {
+  const candidates = ['maxresdefault', 'hqdefault'];
+
+  for (const name of candidates) {
+    const url = `https://i.ytimg.com/vi_webp/${videoId}/${name}.webp`;
+    const response = await fetch(url, {
+      headers: { 'user-agent': 'wmch-youtube-sync/1.0' },
+    });
+    if (!response.ok) continue;
+
+    const bytes = Buffer.from(await response.arrayBuffer());
+    const isWebp = bytes.length > 12
+      && bytes.subarray(0, 4).toString('ascii') === 'RIFF'
+      && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+    if (!isWebp) continue;
+
+    await mkdir(dirname(latestThumbnailPath), { recursive: true });
+    await writeFile(latestThumbnailPath, bytes);
+    return latestThumbnailPath;
+  }
+
+  throw new Error(`최신 설교 썸네일을 WebP로 내려받지 못했습니다: ${videoId}`);
 }
 
 function printSummary(results) {

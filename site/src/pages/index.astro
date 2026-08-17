@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { getCollection } from 'astro:content';
 import { church } from '../data/church';
+import latestSermonThumbnail from '../assets/img/latest-sermon.webp';
 
 const sermons = (await getCollection('sermons')).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
@@ -53,7 +54,11 @@ const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURICompo
       </div>
       <div class="sermon-grid">
         <a class="feat reveal" href={featured.data.youtube ?? church.youtube} target="_blank" rel="noopener">
-          <span class="bg" aria-hidden="true"></span>
+          <span
+            class="bg"
+            aria-hidden="true"
+            style={`--sermon-thumbnail: url(${latestSermonThumbnail.src})`}
+          ></span>
           <span class="play"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0v12l10-6z"/></svg></span>
           <span class="badge">LATEST</span>
           <span class="ref">{featured.data.scripture}</span>

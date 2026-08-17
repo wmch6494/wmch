@@ -181,19 +181,19 @@ h2 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; letter-spacing: -0.04e
 @media (max-width: 880px) { .sermon-grid { grid-template-columns: 1fr; } }
 .feat {
   position: relative; border-radius: 24px; overflow: hidden; isolation: isolate;
-  aspect-ratio: 16 / 10.5; display: flex; flex-direction: column; justify-content: flex-end;
+  aspect-ratio: 16 / 9; display: flex; flex-direction: column; justify-content: flex-end;
   padding: 36px; color: #fff;
 }
 .feat .bg {
   position: absolute; inset: 0; z-index: -1; transition: scale 0.6s ease; scale: 1.001;
   background:
-    linear-gradient(180deg, rgba(26, 26, 22, 0.28), rgba(19, 19, 17, 0.45)),
-    url('../assets/img/hero-sanctuary-v4.webp') center / cover no-repeat,
+    linear-gradient(180deg, rgba(26, 26, 22, 0.08), rgba(19, 19, 17, 0.16)),
+    var(--sermon-thumbnail, url('../assets/img/hero-sanctuary-v4.webp')) center / cover no-repeat,
     linear-gradient(190deg, #3A3A33, #131311 75%);
 }
 .feat:hover .bg { scale: 1.045; }
 @media (prefers-reduced-motion: reduce) { .feat:hover .bg { scale: 1.001; } }
-.feat::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 40%, rgba(10,10,9,0.72)); }
+.feat::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 48%, rgba(10,10,9,0.62)); }
 .feat .play {
   position: absolute; top: 36px; left: 36px; width: 60px; height: 60px; border-radius: 50%;
   background: rgba(255,255,255,0.94); display: grid; place-items: center;
@@ -207,6 +207,14 @@ h2 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; letter-spacing: -0.04e
 .feat .ref { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; color: rgba(255,255,255,0.7); }
 .feat h3 { font-size: clamp(24px, 3vw, 34px); font-weight: 900; letter-spacing: -0.03em; margin: 10px 0 6px; }
 .feat .date { font-size: 13.5px; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .feat { padding: 22px; }
+  .feat .play { top: 22px; left: 22px; width: 50px; height: 50px; }
+  .feat .badge { top: 25px; right: 22px; }
+  .feat .ref { display: none; }
+  .feat h3 { margin: 0 0 2px; font-size: 21px; }
+  .feat .date { font-size: 12px; }
+}
 
 .sermon-side { display: flex; flex-direction: column; justify-content: space-between; gap: 22px; }
 .s-item { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: baseline; padding: 20px 4px; border-bottom: 1px solid var(--line); }

@@ -39,11 +39,11 @@
 - Spacing/layout rhythm: 1200px 최대 폭, 28px 가로 여백, 패널 단위의 넓은 수직 여백
 - Shape/radius/elevation: 카드에만 20–24px 라운딩, 절제된 그림자
 - Motion: 패널 진입 reveal과 키네틱 타이포, `prefers-reduced-motion` 필수
-- Imagery/iconography: 실제 본당 사진과 현재 승인된 사역 이미지만 사용
+- Imagery/iconography: 실제 본당 사진과 현재 승인된 사역 이미지를 사용하고, 대표 말씀 카드는 최신 공식 YouTube 썸네일을 로컬 WebP 한 장으로 동기화한다.
 
 ## Components
 - Existing components to reuse: `Base.astro`, 히어로, 설교 특집 카드, 설교 목록, 예배 테이블, 사역 카드, Google Maps 임베드
-- New/changed components: 없음. 기존 CSS 선택자를 확장한다.
+- New/changed components: 대표 말씀 카드는 주간 동기화가 교체하는 `latest-sermon.webp`를 원본과 같은 16:9 비율로 사용한다.
 - Variants and states: hover, focus-visible, reduced-motion, mobile single-column
 - Token/component ownership: 전역 토큰과 컴포넌트 스타일은 `site/src/styles/global.css`
 
