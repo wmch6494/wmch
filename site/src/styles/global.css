@@ -85,12 +85,16 @@ body.nav-on-light .brand img { filter: none; }
 .nav-links a:hover { opacity: 1; }
 .nav-links a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 @media (max-width: 720px) {
-  nav.top { position: absolute; }
+  nav.top { position: relative; background: var(--paper); }
   nav.top::before { display: none; }
-  .nav-inner { padding: 18px 20px; }
+  .nav-inner,
+  body.on-dark .nav-inner { padding: 18px 20px; color: var(--ink); }
   .brand { gap: 8px; font-size: 14px; }
-  .brand img { width: 40px; height: 25px; }
+  .brand img,
+  body.on-dark .brand img { width: 40px; height: 25px; filter: none; }
   .nav-links a:not(.nav-cta) { display: none; }
+  body.on-dark .nav-cta { background: var(--ink); color: #fff !important; }
+  .hero { min-height: calc(100svh - 75px); }
 }
 .nav-cta {
   padding: 11px 22px; border-radius: 999px; background: #fff; color: var(--ink) !important;
