@@ -21,7 +21,7 @@ test('실제 설교 설명에서 제목, 본문, 설교자를 추출한다', () 
   assert.equal(result.date, '2026-07-12');
   assert.equal(result.title, '사탄의 싸움 기술');
   assert.equal(result.scripture, '에베소서 6:1–13');
-  assert.equal(result.scriptureShort, '엡 6');
+  assert.equal(result.scriptureShort, '엡 6:1–13');
   assert.equal(result.preacher, '이창섭 목사');
   assert.deepEqual(result.warnings, []);
   assert.equal(resolveRuleOnlyStatus(result), 'approved');
@@ -50,6 +50,7 @@ test('예배 전체와 새벽기도회, 찬양대, 뉴스를 구분한다', () =
 
 test('성경 약칭도 정규화하고 잘못된 장을 경고한다', () => {
   assert.equal(parseScripture('엡 6:1-13').normalized, '에베소서 6:1–13');
+  assert.equal(parseScripture('빌 4:1-23').short, '빌 4:1–23');
   assert.equal(parseScripture('빌립소서2:1~30').normalized, '빌립보서 2:1–30');
   assert.deepEqual(parseScripture('에베소서 7:1').warnings, ['invalid_chapter']);
 });

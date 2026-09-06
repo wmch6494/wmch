@@ -8,7 +8,7 @@ const sermons = defineCollection({
     title: z.string(),
     date: z.coerce.date(),
     scripture: z.string(),          // 예: "이사야 43:14–21"
-    scriptureShort: z.string(),     // 예: "사 43"
+    scriptureShort: z.string(),     // 예: "사 43:14–21"
     preacher: z.string().default('담임목사'),
     youtube: z.string().url().optional(), // 유튜브 영상 링크
   }),

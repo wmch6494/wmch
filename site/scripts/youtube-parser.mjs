@@ -113,7 +113,7 @@ export function parseScripture(text = '') {
     startVerse,
     endVerse,
     normalized: `${book.name} ${chapter}:${verseRange}`,
-    short: `${book.short} ${chapter}`,
+    short: `${book.short} ${chapter}:${verseRange}`,
     warnings,
   };
 }
