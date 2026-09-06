@@ -7,6 +7,7 @@ import {
   parseYouTubeFeed,
   resolveRuleOnlyStatus,
 } from './youtube-parser.mjs';
+import { fetchWithRetry } from './fetch-with-retry.mjs';
 
 const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID || 'UCpi1Q5uHa1-gW1C5IQsqR1w';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
@@ -25,10 +26,9 @@ if (useGemini && !process.env.GEMINI_API_KEY) {
   throw new Error('Gemini 검수를 사용하려면 GEMINI_API_KEY가 필요합니다.');
 }
 
-const response = await fetch(FEED_URL, {
+const response = await fetchWithRetry(FEED_URL, {
   headers: { 'user-agent': 'wmch-youtube-sync/1.0' },
-});
-if (!response.ok) throw new Error(`YouTube RSS 요청 실패: ${response.status}`);
+}, { label: 'YouTube RSS 요청' });
 
 const videos = parseYouTubeFeed(await response.text());
 const results = [];

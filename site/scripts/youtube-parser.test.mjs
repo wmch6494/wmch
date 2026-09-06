@@ -7,6 +7,7 @@ import {
   parseYouTubeFeed,
   resolveRuleOnlyStatus,
 } from './youtube-parser.mjs';
+import { fetchWithRetry } from './fetch-with-retry.mjs';
 
 test('실제 설교 설명에서 제목, 본문, 설교자를 추출한다', () => {
   const result = parseVideo({
@@ -73,4 +74,47 @@ test('YouTube Atom 피드를 영상 객체로 변환한다', () => {
   assert.equal(videos[0].title, '제목 & 부제');
   assert.equal(videos[0].description, '본문');
   assert.equal(videos[0].thumbnail, 'thumb.jpg');
+});
+
+test('YouTube RSS의 일시 오류는 지수 간격으로 재시도한다', async () => {
+  const statuses = [404, 502, 200];
+  const waits = [];
+  let calls = 0;
+
+  const response = await fetchWithRetry('https://example.test/feed', {}, {
+    attempts: 3,
+    baseDelayMs: 10,
+    fetchImpl: async () => {
+      const status = statuses[calls];
+      calls += 1;
+      return { ok: status === 200, status, body: null };
+    },
+    sleep: async (milliseconds) => waits.push(milliseconds),
+    onRetry: () => {},
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(calls, 3);
+  assert.deepEqual(waits, [10, 20]);
+});
+
+test('YouTube RSS 오류가 계속되면 마지막 응답으로 실패한다', async () => {
+  let calls = 0;
+
+  await assert.rejects(
+    fetchWithRetry('https://example.test/feed', {}, {
+      attempts: 3,
+      baseDelayMs: 10,
+      label: 'YouTube RSS 요청',
+      fetchImpl: async () => {
+        calls += 1;
+        return { ok: false, status: 404, body: null };
+      },
+      sleep: async () => {},
+      onRetry: () => {},
+    }),
+    /YouTube RSS 요청 실패: 404/u,
+  );
+
+  assert.equal(calls, 3);
 });
