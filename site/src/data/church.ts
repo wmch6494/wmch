@@ -3,6 +3,7 @@
 export const church = {
   name: '세계선교교회',
   nameEn: 'World Mission Presbyterian Church',
+  motto: ['하나님 나라의', '망대를', '세우는', '교회'],
   denomination: '대한예수교장로회(총회)',
   pastor: '담임목사 이창섭',
   founded: '1979년 10월 7일',

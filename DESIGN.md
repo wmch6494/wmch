@@ -2,7 +2,7 @@
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-08-17
+- Last refreshed: 2026-09-06
 - Primary product surfaces: 풀페이지 랜딩(`/`), 말씀 아카이브(`/sermons/`)
 - Evidence reviewed: `HANDOFF.md` §4, `design-concepts/concept-d-landing.html`, `site/src/pages/`, `site/src/styles/global.css`
 
@@ -72,6 +72,7 @@
 ## Content voice
 - Tone: 담백하고 구체적인 한국어
 - Terminology: “말씀”, “예배 안내”, “오시는 길”을 일관되게 사용
+- Hero motto: “하나님 나라의 망대를 세우는 교회”를 첫 줄 “하나님 나라의”, 둘째 줄 “망대를 세우는 교회”로 표시한다.
 - Microcopy rules: 시스템 동작을 설명하는 문장보다 실제 정보를 보여 준다. 확인되지 않은 문구를 지어내지 않는다.
 
 ## Implementation constraints
