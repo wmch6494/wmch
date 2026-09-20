@@ -4,10 +4,9 @@ import { fileURLToPath } from 'node:url';
 import {
   compareRuleAndGemini,
   parseVideo,
-  parseYouTubeFeed,
   resolveRuleOnlyStatus,
 } from './youtube-parser.mjs';
-import { fetchWithRetry } from './fetch-with-retry.mjs';
+import { fetchYouTubeVideos } from './youtube-channel.mjs';
 
 const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID || 'UCpi1Q5uHa1-gW1C5IQsqR1w';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
@@ -26,11 +25,7 @@ if (useGemini && !process.env.GEMINI_API_KEY) {
   throw new Error('Gemini 검수를 사용하려면 GEMINI_API_KEY가 필요합니다.');
 }
 
-const response = await fetchWithRetry(FEED_URL, {
-  headers: { 'user-agent': 'wmch-youtube-sync/1.0' },
-}, { label: 'YouTube RSS 요청' });
-
-const videos = parseYouTubeFeed(await response.text());
+const { source, videos } = await fetchYouTubeVideos(CHANNEL_ID);
 const results = [];
 
 for (const video of videos) {
@@ -63,9 +58,9 @@ if (shouldWrite) {
 }
 
 if (outputJson) {
-  console.log(JSON.stringify({ channelId: CHANNEL_ID, feedUrl: FEED_URL, results }, null, 2));
+  console.log(JSON.stringify({ channelId: CHANNEL_ID, feedUrl: FEED_URL, source, results }, null, 2));
 } else {
-  printSummary(results);
+  printSummary(results, source);
 }
 
 async function reviewWithGemini(rule) {
@@ -189,9 +184,9 @@ async function writeLatestThumbnail(videoId) {
   throw new Error(`최신 설교 썸네일을 WebP로 내려받지 못했습니다: ${videoId}`);
 }
 
-function printSummary(results) {
+function printSummary(results, source) {
   console.log(`채널: ${CHANNEL_ID}`);
-  console.log(`피드: ${results.length}개 영상`);
+  console.log(`수집: ${source === 'rss' ? 'YouTube RSS' : 'YouTube 공식 채널 페이지'} · ${results.length}개 영상`);
   console.log(`Gemini: ${useGemini ? GEMINI_MODEL : '사용 안 함 (규칙 파서 테스트)'}`);
   console.log('');
 

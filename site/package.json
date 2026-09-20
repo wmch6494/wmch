@@ -10,7 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "youtube:test": "node --test scripts/youtube-parser.test.mjs",
+    "youtube:test": "node --test scripts/*.test.mjs",
     "youtube:check": "node scripts/sync-youtube.mjs",
     "youtube:check:gemini": "node scripts/sync-youtube.mjs --gemini",
     "youtube:sync": "node scripts/sync-youtube.mjs --write",
