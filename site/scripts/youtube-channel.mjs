@@ -6,15 +6,20 @@ const WEB_HEADERS = {
   'accept-language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
 };
 
-const defaultRequest = (url, label, retry = {}) => fetchWithRetry(url, {
-  headers: WEB_HEADERS,
-}, {
-  label,
-  attempts: 3,
-  baseDelayMs: 2_000,
-  timeoutMs: 20_000,
-  ...retry,
-});
+const defaultRequest = (url, label, options = {}) => {
+  const { init = {}, ...retry } = options;
+  const { headers = {}, ...requestInit } = init;
+  return fetchWithRetry(url, {
+    ...requestInit,
+    headers: { ...WEB_HEADERS, ...headers },
+  }, {
+    label,
+    attempts: 3,
+    baseDelayMs: 2_000,
+    timeoutMs: 20_000,
+    ...retry,
+  });
+};
 
 export async function fetchYouTubeVideos(channelId, options = {}) {
   const {
@@ -51,12 +56,7 @@ export async function fetchYouTubeChannelVideos(channelId, options = {}) {
     onWarning = (message) => console.warn(message),
   } = options;
   const channelUrl = `https://www.youtube.com/channel/${channelId}/videos?hl=ko&gl=KR`;
-  const response = await request(channelUrl, 'YouTube 채널 페이지 요청');
-  const summaries = parseYouTubeChannelPage(await response.text()).slice(0, limit);
-
-  if (summaries.length === 0) {
-    throw new Error('YouTube 채널 페이지에서 영상 목록을 찾지 못했습니다.');
-  }
+  const { summaries, client } = await fetchChannelPageData(channelUrl, limit, request, onWarning);
 
   const videos = [];
   for (const summary of summaries) {
@@ -67,8 +67,7 @@ export async function fetchYouTubeChannelVideos(channelId, options = {}) {
     }
 
     try {
-      const response = await request(summary.url, `YouTube 영상 정보 요청 (${summary.videoId})`);
-      videos.push(parseYouTubeWatchPage(await response.text(), summary));
+      videos.push(await fetchYouTubeVideoDetails(summary, client, request));
     } catch (error) {
       if (classification === 'sermon') throw error;
       onWarning(`영상 상세 정보를 읽지 못해 검수 대상으로 남깁니다: ${summary.videoId} (${error.message})`);
@@ -77,6 +76,37 @@ export async function fetchYouTubeChannelVideos(channelId, options = {}) {
   }
 
   return videos;
+}
+
+async function fetchChannelPageData(channelUrl, limit, request, onWarning) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const separator = channelUrl.includes('?') ? '&' : '?';
+    const response = await request(
+      `${channelUrl}${separator}wmch_attempt=${attempt}`,
+      `YouTube 채널 페이지 요청 (${attempt}/3)`,
+    );
+    const channelHtml = await response.text();
+
+    try {
+      const summaries = parseYouTubeChannelPage(channelHtml).slice(0, limit);
+      if (summaries.length === 0) {
+        throw new Error('YouTube 채널 페이지에서 영상 목록을 찾지 못했습니다.');
+      }
+
+      const client = parseYouTubeClientConfig(channelHtml);
+      if (!client) throw new Error('YouTube 채널 페이지에서 플레이어 설정을 찾지 못했습니다.');
+      return { summaries, client };
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        onWarning(`YouTube 채널 페이지 응답을 해석하지 못해 다시 요청합니다. (${error.message})`);
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 export function parseYouTubeChannelPage(html) {
@@ -96,6 +126,26 @@ export function parseYouTubeWatchPage(html, fallback = {}) {
     'window["ytInitialPlayerResponse"] = ',
     'ytInitialPlayerResponse = ',
   ]);
+  return parseYouTubePlayerResponse(player, fallback);
+}
+
+export function parseYouTubeClientConfig(html) {
+  const readConfig = (key) => {
+    const match = html.match(new RegExp(`"${key}":"((?:\\\\.|[^"\\\\])*)"`, 'u'));
+    return match ? JSON.parse(`"${match[1]}"`) : '';
+  };
+  const apiKey = readConfig('INNERTUBE_API_KEY');
+  const clientVersion = readConfig('INNERTUBE_CLIENT_VERSION');
+  if (!apiKey || !clientVersion) return null;
+
+  return {
+    apiKey,
+    clientVersion,
+    visitorData: readConfig('VISITOR_DATA'),
+  };
+}
+
+export function parseYouTubePlayerResponse(player, fallback = {}) {
   const details = player.videoDetails;
   if (!details?.videoId) throw new Error('YouTube 영상 페이지에서 상세 정보를 찾지 못했습니다.');
 
@@ -110,6 +160,51 @@ export function parseYouTubeWatchPage(html, fallback = {}) {
     url: `https://www.youtube.com/watch?v=${details.videoId}`,
     thumbnail: pickLargestThumbnail(thumbnails)?.url || fallback.thumbnail || '',
   };
+}
+
+async function fetchYouTubeVideoDetails(summary, client, request) {
+  let playerError;
+
+  if (client) {
+    try {
+      const endpoint = `https://www.youtube.com/youtubei/v1/player?key=${encodeURIComponent(client.apiKey)}&prettyPrint=false`;
+      const response = await request(endpoint, `YouTube 플레이어 정보 요청 (${summary.videoId})`, {
+        init: {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-youtube-client-name': '1',
+            'x-youtube-client-version': client.clientVersion,
+          },
+          body: JSON.stringify({
+            context: {
+              client: {
+                clientName: 'WEB',
+                clientVersion: client.clientVersion,
+                hl: 'ko',
+                gl: 'KR',
+                visitorData: client.visitorData,
+              },
+            },
+            videoId: summary.videoId,
+            contentCheckOk: true,
+            racyCheckOk: true,
+          }),
+        },
+      });
+      return parseYouTubePlayerResponse(await response.json(), summary);
+    } catch (error) {
+      playerError = error;
+    }
+  }
+
+  try {
+    const response = await request(summary.url, `YouTube 영상 페이지 요청 (${summary.videoId})`);
+    return parseYouTubeWatchPage(await response.text(), summary);
+  } catch (error) {
+    const causes = [playerError?.message, error.message].filter(Boolean).join(' / ');
+    throw new Error(`YouTube 영상 상세 정보를 읽지 못했습니다: ${summary.videoId} (${causes})`);
+  }
 }
 
 function collectVideoSummaries(value, videos) {

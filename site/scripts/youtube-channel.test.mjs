@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   fetchYouTubeVideos,
   parseYouTubeChannelPage,
+  parseYouTubeClientConfig,
   parseYouTubeWatchPage,
 } from './youtube-channel.mjs';
 
@@ -48,6 +49,10 @@ const watchData = {
 };
 
 const page = (name, data) => `<script>var ${name} = ${JSON.stringify(data)};</script>`;
+const channelPage = () => [
+  '<script>ytcfg.set({"INNERTUBE_API_KEY":"public-key","INNERTUBE_CLIENT_VERSION":"2.20260918.00.00","VISITOR_DATA":"visitor-data"});</script>',
+  page('ytInitialData', channelData),
+].join('');
 
 test('공식 채널 페이지의 현재·이전 영상 구조를 모두 읽는다', () => {
   const videos = parseYouTubeChannelPage(page('ytInitialData', channelData));
@@ -74,14 +79,26 @@ test('영상 페이지에서 설교 설명과 게시일을 읽는다', () => {
   assert.equal(video.thumbnail, 'watch-large.jpg');
 });
 
+test('채널 페이지에서 플레이어 API 설정을 읽는다', () => {
+  assert.deepEqual(parseYouTubeClientConfig(channelPage()), {
+    apiKey: 'public-key',
+    clientVersion: '2.20260918.00.00',
+    visitorData: 'visitor-data',
+  });
+});
+
 test('RSS가 실패하면 공식 채널 페이지와 설교 상세 페이지로 전환한다', async () => {
   const warnings = [];
   const requested = [];
+  let channelRequests = 0;
   const request = async (url) => {
     requested.push(url);
     if (url.includes('/feeds/')) throw new Error('YouTube RSS 요청 실패: 404');
-    if (url.includes('/channel/')) return { text: async () => page('ytInitialData', channelData) };
-    if (url.includes('sermon123')) return { text: async () => page('ytInitialPlayerResponse', watchData) };
+    if (url.includes('/channel/')) {
+      channelRequests += 1;
+      return { text: async () => channelRequests === 1 ? '<html>일시적인 불완전 응답</html>' : channelPage() };
+    }
+    if (url.includes('/youtubei/v1/player')) return { json: async () => watchData };
     throw new Error(`예상하지 못한 요청: ${url}`);
   };
 
@@ -93,6 +110,8 @@ test('RSS가 실패하면 공식 채널 페이지와 설교 상세 페이지로 
   assert.equal(result.source, 'channel-page');
   assert.equal(result.videos.length, 2);
   assert.match(result.videos[0].description, /골2:1~23/u);
-  assert.equal(requested.filter((url) => url.includes('/watch?')).length, 1);
+  assert.equal(requested.filter((url) => url.includes('/youtubei/v1/player')).length, 1);
+  assert.equal(channelRequests, 2);
   assert.match(warnings[0], /공식 채널 페이지로 전환/u);
+  assert.match(warnings[1], /다시 요청/u);
 });
