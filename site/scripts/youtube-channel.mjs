@@ -6,6 +6,9 @@ const WEB_HEADERS = {
   'accept-language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
 };
 
+const INVIDIOUS_REGISTRY_URL = 'https://api.invidious.io/instances.json?sort_by=health';
+const KNOWN_INVIDIOUS_INSTANCES = ['https://invidious.f5.si'];
+
 const defaultRequest = (url, label, options = {}) => {
   const { init = {}, ...retry } = options;
   const { headers = {}, ...requestInit } = init;
@@ -57,6 +60,11 @@ export async function fetchYouTubeChannelVideos(channelId, options = {}) {
   } = options;
   const channelUrl = `https://www.youtube.com/channel/${channelId}/videos?hl=ko&gl=KR`;
   const { summaries, client } = await fetchChannelPageData(channelUrl, limit, request, onWarning);
+  let invidiousInstancesPromise;
+  const getInvidiousInstances = () => {
+    invidiousInstancesPromise ??= fetchInvidiousInstances(request, onWarning);
+    return invidiousInstancesPromise;
+  };
 
   const videos = [];
   for (const summary of summaries) {
@@ -67,7 +75,13 @@ export async function fetchYouTubeChannelVideos(channelId, options = {}) {
     }
 
     try {
-      videos.push(await fetchYouTubeVideoDetails(summary, client, request));
+      videos.push(await fetchYouTubeVideoDetails(
+        summary,
+        client,
+        channelId,
+        request,
+        getInvidiousInstances,
+      ));
     } catch (error) {
       if (classification === 'sermon') throw error;
       onWarning(`영상 상세 정보를 읽지 못해 검수 대상으로 남깁니다: ${summary.videoId} (${error.message})`);
@@ -96,7 +110,9 @@ async function fetchChannelPageData(channelUrl, limit, request, onWarning) {
       }
 
       const client = parseYouTubeClientConfig(channelHtml);
-      if (!client) throw new Error('YouTube 채널 페이지에서 플레이어 설정을 찾지 못했습니다.');
+      if (!client) {
+        onWarning('YouTube 플레이어 설정이 없어 영상 페이지와 보조 메타데이터 경로를 사용합니다.');
+      }
       return { summaries, client };
     } catch (error) {
       lastError = error;
@@ -167,7 +183,43 @@ export function parseYouTubePlayerResponse(player, fallback = {}) {
   };
 }
 
-async function fetchYouTubeVideoDetails(summary, client, request) {
+export function parseInvidiousVideo(payload, fallback, expectedChannelId) {
+  if (payload?.videoId !== fallback.videoId) {
+    throw new Error('보조 메타데이터의 영상 ID가 공식 채널 영상과 일치하지 않습니다.');
+  }
+  if (payload.authorId !== expectedChannelId) {
+    throw new Error('보조 메타데이터의 채널 ID가 공식 채널과 일치하지 않습니다.');
+  }
+
+  const title = typeof payload.title === 'string' ? payload.title.trim() : '';
+  const description = typeof payload.description === 'string' ? payload.description.trim() : '';
+  if (!title || !description) {
+    throw new Error('보조 메타데이터에 설교 제목 또는 설명이 없습니다.');
+  }
+
+  const publishedSeconds = Number(payload.published);
+  const publishedAt = Number.isFinite(publishedSeconds) && publishedSeconds > 0
+    ? new Date(publishedSeconds * 1_000).toISOString()
+    : fallback.publishedAt || '';
+
+  return {
+    videoId: fallback.videoId,
+    title,
+    description,
+    publishedAt,
+    updatedAt: '',
+    url: fallback.url,
+    thumbnail: pickLargestThumbnail(payload.videoThumbnails)?.url || fallback.thumbnail || '',
+  };
+}
+
+async function fetchYouTubeVideoDetails(
+  summary,
+  client,
+  channelId,
+  request,
+  getInvidiousInstances,
+) {
   const playerErrors = [];
 
   if (client) {
@@ -175,6 +227,7 @@ async function fetchYouTubeVideoDetails(summary, client, request) {
       try {
         const endpoint = `https://www.youtube.com/youtubei/v1/player?key=${encodeURIComponent(client.apiKey)}&prettyPrint=false`;
         const response = await request(endpoint, `YouTube ${profile.name} 플레이어 정보 요청 (${summary.videoId})`, {
+          attempts: 1,
           init: {
             method: 'POST',
             headers: {
@@ -206,12 +259,96 @@ async function fetchYouTubeVideoDetails(summary, client, request) {
     }
   }
 
+  const pageCandidates = [{
+    name: 'WATCH',
+    url: summary.url,
+  }, {
+    name: 'MOBILE',
+    url: `https://m.youtube.com/watch?v=${encodeURIComponent(summary.videoId)}&hl=ko&gl=KR`,
+  }, {
+    name: 'SHORTS',
+    url: `https://www.youtube.com/shorts/${encodeURIComponent(summary.videoId)}?hl=ko&gl=KR`,
+  }];
+
+  for (const candidate of pageCandidates) {
+    try {
+      const response = await request(
+        candidate.url,
+        `YouTube ${candidate.name} 영상 페이지 요청 (${summary.videoId})`,
+        { attempts: 1 },
+      );
+      return parseYouTubeWatchPage(await response.text(), summary);
+    } catch (error) {
+      playerErrors.push(`${candidate.name}: ${error.message}`);
+    }
+  }
+
   try {
-    const response = await request(summary.url, `YouTube 영상 페이지 요청 (${summary.videoId})`);
-    return parseYouTubeWatchPage(await response.text(), summary);
+    return await fetchInvidiousVideoDetails(
+      summary,
+      channelId,
+      request,
+      getInvidiousInstances,
+    );
   } catch (error) {
-    const causes = [...playerErrors, `WATCH: ${error.message}`].join(' / ');
+    const causes = [...playerErrors, `INVIDIOUS: ${error.message}`].join(' / ');
     throw new Error(`YouTube 영상 상세 정보를 읽지 못했습니다: ${summary.videoId} (${causes})`);
+  }
+}
+
+async function fetchInvidiousInstances(request, onWarning) {
+  const discovered = [];
+
+  try {
+    const response = await request(INVIDIOUS_REGISTRY_URL, 'Invidious 인스턴스 목록 요청', {
+      attempts: 2,
+      baseDelayMs: 1_000,
+    });
+    const instances = await response.json();
+
+    for (const [host, details] of instances) {
+      if (details?.api !== true || details.type !== 'https' || details.monitor?.down === true) continue;
+      const uri = normalizeHttpsOrigin(details.uri || `https://${host}`);
+      if (uri) discovered.push(uri);
+    }
+  } catch (error) {
+    onWarning(`Invidious 인스턴스 목록을 읽지 못해 기본 보조 경로를 사용합니다. (${error.message})`);
+  }
+
+  return [...new Set([...discovered, ...KNOWN_INVIDIOUS_INSTANCES])].slice(0, 5);
+}
+
+async function fetchInvidiousVideoDetails(
+  summary,
+  channelId,
+  request,
+  getInvidiousInstances,
+) {
+  const instances = await getInvidiousInstances();
+  const errors = [];
+
+  for (const instance of instances) {
+    try {
+      const response = await request(
+        `${instance}/api/v1/videos/${encodeURIComponent(summary.videoId)}?hl=ko`,
+        `Invidious 영상 정보 요청 (${summary.videoId})`,
+        { attempts: 2, baseDelayMs: 1_000 },
+      );
+      return parseInvidiousVideo(await response.json(), summary, channelId);
+    } catch (error) {
+      errors.push(`${instance}: ${error.message}`);
+    }
+  }
+
+  throw new Error(errors.join(' / ') || '사용 가능한 보조 메타데이터 인스턴스가 없습니다.');
+}
+
+function normalizeHttpsOrigin(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.origin : '';
+  } catch {
+    return '';
   }
 }
 

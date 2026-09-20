@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   fetchYouTubeVideos,
+  parseInvidiousVideo,
   parseYouTubeChannelPage,
   parseYouTubeClientConfig,
   parseYouTubeWatchPage,
@@ -87,6 +88,38 @@ test('채널 페이지에서 플레이어 API 설정을 읽는다', () => {
   });
 });
 
+test('보조 메타데이터는 공식 영상 ID와 채널 ID가 모두 일치할 때만 사용한다', () => {
+  const fallback = {
+    videoId: 'sermon123',
+    title: '공식 채널 제목',
+    publishedAt: '',
+    url: 'https://www.youtube.com/watch?v=sermon123',
+    thumbnail: 'official.jpg',
+  };
+  const payload = {
+    videoId: 'sermon123',
+    authorId: 'channel123',
+    title: '[2026.09.13] 세계선교교회 주일 2부 말씀',
+    description: '그리스도의 비밀을 가진 자(골2:1~23)',
+    published: 1789272000,
+    videoThumbnails: [{ url: 'mirror-small.jpg', width: 120 }, { url: 'mirror-large.jpg', width: 1280 }],
+  };
+
+  const video = parseInvidiousVideo(payload, fallback, 'channel123');
+
+  assert.equal(video.videoId, 'sermon123');
+  assert.match(video.description, /골2:1~23/u);
+  assert.equal(video.thumbnail, 'mirror-large.jpg');
+  assert.throws(
+    () => parseInvidiousVideo({ ...payload, videoId: 'other' }, fallback, 'channel123'),
+    /영상 ID/u,
+  );
+  assert.throws(
+    () => parseInvidiousVideo({ ...payload, authorId: 'other' }, fallback, 'channel123'),
+    /채널 ID/u,
+  );
+});
+
 test('RSS가 실패하면 공식 채널 페이지와 설교 상세 페이지로 전환한다', async () => {
   const warnings = [];
   const requested = [];
@@ -119,4 +152,52 @@ test('RSS가 실패하면 공식 채널 페이지와 설교 상세 페이지로 
   assert.equal(channelRequests, 2);
   assert.match(warnings[0], /공식 채널 페이지로 전환/u);
   assert.match(warnings[1], /다시 요청/u);
+});
+
+test('GitHub 러너에서 YouTube 상세 정보가 차단되면 검증된 보조 API로 전환한다', async () => {
+  const requested = [];
+  const request = async (url) => {
+    requested.push(url);
+    if (url.includes('/feeds/')) throw new Error('YouTube RSS 요청 실패: 404');
+    if (url.includes('/channel/')) return { text: async () => channelPage() };
+    if (url.includes('/youtubei/v1/player')) {
+      return {
+        json: async () => ({
+          playabilityStatus: { status: 'LOGIN_REQUIRED', reason: '로그인하여 봇이 아님을 확인하세요.' },
+        }),
+      };
+    }
+    if (url.startsWith('https://www.youtube.com/watch')
+      || url.startsWith('https://m.youtube.com/watch')
+      || url.startsWith('https://www.youtube.com/shorts/')) {
+      throw new Error('YouTube 영상 페이지 요청 실패: 429');
+    }
+    if (url.startsWith('https://api.invidious.io/')) {
+      return {
+        json: async () => [[
+          'mirror.test',
+          { api: true, type: 'https', uri: 'https://mirror.test', monitor: { down: false } },
+        ]],
+      };
+    }
+    if (url.startsWith('https://mirror.test/api/v1/videos/')) {
+      return {
+        json: async () => ({
+          videoId: 'sermon123',
+          authorId: 'channel123',
+          title: '[2026.09.13] 세계선교교회 주일 2부 말씀',
+          description: '[2026.09.13] 세계선교교회 주일 2부 말씀\n그리스도의 비밀을 가진 자(골2:1~23)\n이창섭 목사님',
+          published: 1789272000,
+          videoThumbnails: [{ url: 'mirror.jpg', width: 1280 }],
+        }),
+      };
+    }
+    throw new Error(`예상하지 못한 요청: ${url}`);
+  };
+
+  const result = await fetchYouTubeVideos('channel123', { request, onWarning: () => {} });
+
+  assert.equal(result.source, 'channel-page');
+  assert.match(result.videos[0].description, /그리스도의 비밀/u);
+  assert.ok(requested.some((url) => url.startsWith('https://mirror.test/api/v1/videos/')));
 });
