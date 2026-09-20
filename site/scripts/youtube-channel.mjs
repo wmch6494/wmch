@@ -147,7 +147,12 @@ export function parseYouTubeClientConfig(html) {
 
 export function parseYouTubePlayerResponse(player, fallback = {}) {
   const details = player.videoDetails;
-  if (!details?.videoId) throw new Error('YouTube 영상 페이지에서 상세 정보를 찾지 못했습니다.');
+  if (!details?.videoId) {
+    const status = player.playabilityStatus?.status;
+    const reason = player.playabilityStatus?.reason;
+    const context = [status, reason].filter(Boolean).join(': ');
+    throw new Error(`YouTube 영상 페이지에서 상세 정보를 찾지 못했습니다.${context ? ` (${context})` : ''}`);
+  }
 
   const microformat = player.microformat?.playerMicroformatRenderer ?? {};
   const thumbnails = details.thumbnail?.thumbnails ?? [];
@@ -163,38 +168,41 @@ export function parseYouTubePlayerResponse(player, fallback = {}) {
 }
 
 async function fetchYouTubeVideoDetails(summary, client, request) {
-  let playerError;
+  const playerErrors = [];
 
   if (client) {
-    try {
-      const endpoint = `https://www.youtube.com/youtubei/v1/player?key=${encodeURIComponent(client.apiKey)}&prettyPrint=false`;
-      const response = await request(endpoint, `YouTube 플레이어 정보 요청 (${summary.videoId})`, {
-        init: {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-youtube-client-name': '1',
-            'x-youtube-client-version': client.clientVersion,
-          },
-          body: JSON.stringify({
-            context: {
-              client: {
-                clientName: 'WEB',
-                clientVersion: client.clientVersion,
-                hl: 'ko',
-                gl: 'KR',
-                visitorData: client.visitorData,
-              },
+    for (const profile of playerProfiles(client)) {
+      try {
+        const endpoint = `https://www.youtube.com/youtubei/v1/player?key=${encodeURIComponent(client.apiKey)}&prettyPrint=false`;
+        const response = await request(endpoint, `YouTube ${profile.name} 플레이어 정보 요청 (${summary.videoId})`, {
+          init: {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'user-agent': profile.userAgent,
+              'x-youtube-client-name': profile.id,
+              'x-youtube-client-version': profile.version,
             },
-            videoId: summary.videoId,
-            contentCheckOk: true,
-            racyCheckOk: true,
-          }),
-        },
-      });
-      return parseYouTubePlayerResponse(await response.json(), summary);
-    } catch (error) {
-      playerError = error;
+            body: JSON.stringify({
+              context: {
+                client: {
+                  clientName: profile.name,
+                  clientVersion: profile.version,
+                  hl: 'ko',
+                  gl: 'KR',
+                  ...profile.context,
+                },
+              },
+              videoId: summary.videoId,
+              contentCheckOk: true,
+              racyCheckOk: true,
+            }),
+          },
+        });
+        return parseYouTubePlayerResponse(await response.json(), summary);
+      } catch (error) {
+        playerErrors.push(`${profile.name}: ${error.message}`);
+      }
     }
   }
 
@@ -202,9 +210,36 @@ async function fetchYouTubeVideoDetails(summary, client, request) {
     const response = await request(summary.url, `YouTube 영상 페이지 요청 (${summary.videoId})`);
     return parseYouTubeWatchPage(await response.text(), summary);
   } catch (error) {
-    const causes = [playerError?.message, error.message].filter(Boolean).join(' / ');
+    const causes = [...playerErrors, `WATCH: ${error.message}`].join(' / ');
     throw new Error(`YouTube 영상 상세 정보를 읽지 못했습니다: ${summary.videoId} (${causes})`);
   }
+}
+
+function playerProfiles(client) {
+  return [{
+    name: 'ANDROID',
+    id: '3',
+    version: '20.10.38',
+    userAgent: 'com.google.android.youtube/20.10.38 (Linux; U; Android 15) gzip',
+    context: { androidSdkVersion: 35 },
+  }, {
+    name: 'IOS',
+    id: '5',
+    version: '20.10.4',
+    userAgent: 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_1 like Mac OS X;)',
+    context: {
+      deviceMake: 'Apple',
+      deviceModel: 'iPhone16,2',
+      osName: 'iPhone',
+      osVersion: '18.3.1.22D72',
+    },
+  }, {
+    name: 'WEB',
+    id: '1',
+    version: client.clientVersion,
+    userAgent: WEB_HEADERS['user-agent'],
+    context: { visitorData: client.visitorData },
+  }];
 }
 
 function collectVideoSummaries(value, videos) {

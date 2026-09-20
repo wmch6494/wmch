@@ -90,15 +90,19 @@ test('채널 페이지에서 플레이어 API 설정을 읽는다', () => {
 test('RSS가 실패하면 공식 채널 페이지와 설교 상세 페이지로 전환한다', async () => {
   const warnings = [];
   const requested = [];
+  const playerClients = [];
   let channelRequests = 0;
-  const request = async (url) => {
+  const request = async (url, _label, options = {}) => {
     requested.push(url);
     if (url.includes('/feeds/')) throw new Error('YouTube RSS 요청 실패: 404');
     if (url.includes('/channel/')) {
       channelRequests += 1;
       return { text: async () => channelRequests === 1 ? '<html>일시적인 불완전 응답</html>' : channelPage() };
     }
-    if (url.includes('/youtubei/v1/player')) return { json: async () => watchData };
+    if (url.includes('/youtubei/v1/player')) {
+      playerClients.push(JSON.parse(options.init.body).context.client.clientName);
+      return { json: async () => watchData };
+    }
     throw new Error(`예상하지 못한 요청: ${url}`);
   };
 
@@ -111,6 +115,7 @@ test('RSS가 실패하면 공식 채널 페이지와 설교 상세 페이지로 
   assert.equal(result.videos.length, 2);
   assert.match(result.videos[0].description, /골2:1~23/u);
   assert.equal(requested.filter((url) => url.includes('/youtubei/v1/player')).length, 1);
+  assert.deepEqual(playerClients, ['ANDROID']);
   assert.equal(channelRequests, 2);
   assert.match(warnings[0], /공식 채널 페이지로 전환/u);
   assert.match(warnings[1], /다시 요청/u);
